@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="3.1" xmlns="http://xmlns.jcp.org/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd">
+    <servlet>
+        <servlet-name>TwitterLoginServlet</servlet-name>
+        <servlet-class>org.smarttechie.servlet.TwitterLoginServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>TwitterCallbackServlet</servlet-name>
+        <servlet-class>org.smarttechie.servlet.TwitterCallbackServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>SimpleStream</servlet-name>
+        <servlet-class>org.smarttechie.servlet.SimpleStream</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>Template</servlet-name>
+        <servlet-class>org.smarttechie.servlet.Template</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>GetTheWords</servlet-name>
+        <servlet-class>org.smarttechie.servlet.GetTheWords</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>ExportData</servlet-name>
+        <servlet-class>org.smarttechie.servlet.ExportData</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>test1</servlet-name>
+        <url-pattern>/test1</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>NamexTweet</servlet-name>
+        <url-pattern>/NamexTweet</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>TwitterLoginServlet</servlet-name>
+        <url-pattern>/TwitterLoginServlet</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>TwitterCallbackServlet</servlet-name>
+        <url-pattern>/TwitterCallbackServlet</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>SimpleStream</servlet-name>
+        <url-pattern>/SimpleStream</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>Template</servlet-name>
+        <url-pattern>/Template</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>GetTheWords</servlet-name>
+        <url-pattern>/GetTheWords</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>ExportData</servlet-name>
+        <url-pattern>/ExportData</url-pattern>
+    </servlet-mapping>
+    <session-config>
+        <session-timeout>
+            30
+        </session-timeout>
+    </session-config>
+    <display-name>Twitter-Sign-In-Web</display-name>
+    <servlet>
+        <description/>
+        <display-name>TwitterSigninServlet</display-name>
+        <servlet-name>TwitterSigninServlet</servlet-name>
+        <servlet-class>org.smarttechie.servlet.TwitterSigninServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>test1</servlet-name>
+        <servlet-class>test1</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>NamexTweet</servlet-name>
+        <servlet-class>com.namex.tweet.NamexTweet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>TwitterSigninServlet</servlet-name>
+        <url-pattern>/signinTwitter</url-pattern>
+    </servlet-mapping>
+</web-app>
+<!--
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://java.sun.com/xml/ns/javaee" 
+xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" 
+xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd" id="WebApp_ID" version="2.5">
+<display-name>Twitter-Sign-In-Web</display-name>
+<servlet>
+<description></description>
+<display-name>TwitterSigninServlet</display-name>
+<servlet-name>TwitterSigninServlet</servlet-name>
+<servlet-class>org.smarttechie.servlet.TwitterSigninServlet</servlet-class>
+</servlet>
+<servlet-mapping>
+<servlet-name>TwitterSigninServlet</servlet-name>
+<url-pattern>/signin</url-pattern>
+</servlet-mapping>
+</web-app>
+-->
