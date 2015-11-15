@@ -36,6 +36,8 @@ import twitter4j.StallWarning;
 import twitter4j.Status;
 import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
+import twitter4j.Twitter;
+import twitter4j.TwitterFactory;
 import twitter4j.TwitterStream;
 import twitter4j.TwitterStreamFactory;
 import twitter4j.User;
@@ -62,6 +64,9 @@ public class SimpleStream extends HttpServlet {
     Relationship relationship;
     private static final String DB_PATH = "/home/mary/Codes/GetTheLeadMaven/neo/tweet-db";//"target/neo4j-hello-db";
     public String greeting;
+    TwitterStream twitterStream;
+    StatusListener listener;
+    TwitterStreamFactory streamFactory;
     
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -79,52 +84,32 @@ public class SimpleStream extends HttpServlet {
         cluster = Cluster.builder().addContactPoint("localhost").build();
         session = cluster.connect("GetTheLead");
         String[] parametros = {"TuiteraMx",keywords};
-        TwitterStream twitterStream = new TwitterStreamFactory(cb.build()).getInstance();
+        twitterStream = new TwitterStreamFactory(cb.build()).getInstance();
         //EmbeddedNeo4j neo = new EmbeddedNeo4j();
         //neo.createDb();
         //neo.removeData();
         //neo.shutDown();
         graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( DB_PATH );
         registerShutdownHook( graphDb );
-        // START SNIPPET: transaction
-        try (Transaction tx = graphDb.beginTx()) {
-            // Database operations go here
-            // END SNIPPET: transaction
-            // START SNIPPET: addData
-            firstNode = graphDb.createNode();
-            firstNode.setProperty("message", "Hello, ");
-            secondNode = graphDb.createNode();
-            secondNode.setProperty("message", "World!");
-            relationship = firstNode.createRelationshipTo(secondNode, RelTypes.KNOWS);
-            relationship.setProperty("message", "brave Neo4j ");
-            // END SNIPPET: addData
-            
-            // START SNIPPET: readData
-            System.out.print(firstNode.getProperty("message"));
-            System.out.print(relationship.getProperty("message"));
-            System.out.print(secondNode.getProperty("message"));
-            // END SNIPPET: readData
-            
-            greeting = ((String) firstNode.getProperty("message"))
-                    + ((String) relationship.getProperty("message"))
-                    + ((String) secondNode.getProperty("message"));
-
-            // START SNIPPET: transaction
-            tx.success();
-        }
-        // END SNIPPET: transaction
-        removeData();
-        shutDown();
         getStream(twitterStream,parametros,session);//,out);
         //out.close();
         
+    }
+    
+    public void stopStream(){
+
+        twitterStream.shutdown();
+        //m_logger.info("shutdown done");
+        twitterStream = null;
+        listener = null;
+        shutDown();
     }
     
     public void getStream(TwitterStream twitterStream, String[] parametros,
             final Session session)//,PrintStream out)
     {
         
-        StatusListener listener = new StatusListener() {
+        listener = new StatusListener() {
 
             @Override
             public void onException(Exception arg0) {
@@ -146,6 +131,9 @@ public class SimpleStream extends HttpServlet {
 
             @Override
             public void onStatus(Status status) {
+                Twitter twitter = new TwitterFactory().getInstance();
+                
+                
                 User user = status.getUser();
                 
                 // gets Username
@@ -160,20 +148,34 @@ public class SimpleStream extends HttpServlet {
                 
                 JSONObject obj = new JSONObject();
                 obj.put("User", status.getUser().getScreenName());
-                obj.put("ProfileLocation", user.getLocation());
+                obj.put("ProfileLocation", user.getLocation().replaceAll("'", "''"));
                 obj.put("Id", status.getId());                
                 obj.put("UserId", status.getUser().getId());
                 //obj.put("User", status.getUser());
                 obj.put("Message", status.getText().replaceAll("'", "''"));
                 obj.put("CreatedAt", status.getCreatedAt().toString());
                 obj.put("CurrentUserRetweetId", status.getCurrentUserRetweetId());
-                
+                //Get user retweeteed
+                String otheruser;
+                try{
+                    if(status.getCurrentUserRetweetId()!=-1){
+                        User user2 = twitter.showUser(status.getCurrentUserRetweetId());
+                        otheruser = user2.getScreenName();
+                        System.out.println("Other user: " + otheruser);
+                    }
+                }
+                catch(Exception ex)
+                {
+                    System.out.println("ERROR: " +  ex.getMessage().toString());
+                }
                 obj.put("IsRetweet", status.isRetweet());
                 obj.put("IsRetweeted", status.isRetweeted());
                 obj.put("IsFavorited", status.isFavorited());
                 
                 obj.put("InReplyToUserId", status.getInReplyToUserId());
+                //In reply to
                 obj.put("InReplyToScreenName",status.getInReplyToScreenName());
+                
                 obj.put("RetweetCount",status.getRetweetCount());
                 if(status.getGeoLocation()!=null){
                     obj.put("GeoLocationLatitude",status.getGeoLocation().getLatitude());
@@ -186,7 +188,7 @@ public class SimpleStream extends HttpServlet {
                     listHashtags.add(entity.getText());                
                     hashtags +=entity.getText() + ",";
                 }
-                //obj.put("HashtagEntities", listHashtags);
+                
                 if(!hashtags.isEmpty())
                     obj.put("HashtagEntities", hashtags.substring(0,hashtags.length()-1));
                 
@@ -225,41 +227,10 @@ public class SimpleStream extends HttpServlet {
                 
                 System.out.println("" + obj.toJSONString());
                 
+                insertNodeNeo4j(obj);
+                
                 //out.println(obj.toJSONString());
                 String statement = "INSERT INTO TweetsTest JSON '" + obj.toJSONString() + "';";
-                /*
-                String statement = "INSERT INTO TweetsTest (Id, UserId,User, CurrentUserRetweetId, " +
-                        "InReplyToUserId,ProfileLocation,Message,CreatedAt,IsRetweet,IsRetweeted," +
-                        "IsFavorited,QuotedStatusId,Contributors,InReplyToScreenName,RetweetCount," +
-                        "GeoLocationLatitude,GeoLocationLongitude,HashtagEntities,PlaceCountry," +
-                        "PlaceFullName,Source,IsPossiblySensitive, IsTruncated" +
-                        ") VALUES (" + 
-                        status.getId() + ", " + 
-                        status.getUser().getId() + ",'" + 
-                        status.getUser().getScreenName() +"', " +
-                        status.getCurrentUserRetweetId() + ", " +
-                        status.getInReplyToUserId() + ", '" +
-                        user.getLocation() + "', '" +
-                        status.getText() + "', '" +
-                        status.getCreatedAt() + "'," +
-                        status.isRetweet() + "," +
-                        status.isRetweeted() + "," +
-                        status.isFavorited() + "," +
-                        status.getQuotedStatusId()+ ",'" +
-                        obj.get("Contributors").toString() + "','" +
-                        status.getInReplyToScreenName() + "'," +
-                        status.getRetweetCount() + ", " +
-                        status.getGeoLocation().getLatitude() + "," +
-                        status.getGeoLocation().getLongitude() + ",'" + 
-                        obj.get("HashtagEntities") + "','" +
-                        status.getPlace().getCountry() + "','"+
-                        status.getPlace().getFullName() + "','" +
-                        status.getSource() + "'," +
-                        status.isPossiblySensitive() + "," +
-                        status.isTruncated() + ",'" +
-                        obj.get("Scopes") + "'" +
-                        ")";
-                */
                 executeQuery(session,statement);
             }
 
@@ -274,6 +245,8 @@ public class SimpleStream extends HttpServlet {
                 throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
             }
 
+            
+
         };
         FilterQuery fq = new FilterQuery();        
 
@@ -283,7 +256,33 @@ public class SimpleStream extends HttpServlet {
         twitterStream.filter(fq);
     }
     
-    	
+    private void insertNodeNeo4j(JSONObject obj) {
+        //retweeted
+        
+        // START SNIPPET: transaction
+        try (Transaction tx = graphDb.beginTx()) {
+            // Database operations go here
+            // END SNIPPET: transaction
+            // START SNIPPET: addData
+
+            firstNode = graphDb.createNode();
+            firstNode.setProperty("name", obj.get("User"));
+            firstNode.setProperty("id", obj.get("UserId"));
+            if(obj.get("InReplyToScreenName")!= null)
+            {
+                secondNode = graphDb.createNode();
+                secondNode.setProperty("name", obj.get("InReplyToScreenName"));
+                secondNode.setProperty("id", obj.get("InReplyToUserId"));
+                relationship = firstNode.createRelationshipTo(secondNode, RelTypes.KNOWS);
+                relationship.setProperty("relation", "replied");
+            }
+            // END SNIPPET: addData           
+
+            // START SNIPPET: transaction
+            tx.success();
+        }
+        // END SNIPPET: transaction
+    }
 
 private ResultSet executeQuery(Session session,String statement){
     ResultSet result=null;
