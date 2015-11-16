@@ -14,7 +14,10 @@ import com.datastax.driver.core.exceptions.QueryExecutionException;
 import com.datastax.driver.core.exceptions.QueryTimeoutException;
 import com.datastax.driver.core.exceptions.QueryValidationException;
 import com.datastax.driver.core.exceptions.SyntaxError;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -26,8 +29,13 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.ReturnableEvaluator;
+import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.Traverser.Order;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.visualization.graphviz.GraphvizWriter;
+import org.neo4j.walk.Walker;
 //import org.neo4j.io.fs.FileUtils;
 //import src.classes.EmbeddedNeo4j;
 import twitter4j.FilterQuery;
@@ -59,18 +67,18 @@ public class SimpleStream extends HttpServlet {
      */
     
     GraphDatabaseService graphDb;
-    Node firstNode;
-    Node secondNode;
-    Relationship relationship;
+
     private static final String DB_PATH = "/home/mary/Codes/GetTheLeadMaven/neo/tweet-db";//"target/neo4j-hello-db";
     public String greeting;
     TwitterStream twitterStream;
     StatusListener listener;
     TwitterStreamFactory streamFactory;
+    String SEARCH_NAME;
     
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String keywords = request.getParameter("keywords");
+        SEARCH_NAME = request.getParameter("SearchName");
         ConfigurationBuilder cb = new ConfigurationBuilder();
         cb.setDebugEnabled(true);
         cb.setOAuthConsumerKey("Y8NvcZqWjUvNR0wfict2rSKmx");
@@ -258,13 +266,16 @@ public class SimpleStream extends HttpServlet {
     
     private void insertNodeNeo4j(JSONObject obj) {
         //retweeted
+        Node firstNode;
+        Node secondNode;
+        Relationship relationship;
         
         // START SNIPPET: transaction
         try (Transaction tx = graphDb.beginTx()) {
             // Database operations go here
             // END SNIPPET: transaction
             // START SNIPPET: addData
-
+            
             firstNode = graphDb.createNode();
             firstNode.setProperty("name", obj.get("User"));
             firstNode.setProperty("id", obj.get("UserId"));
@@ -276,12 +287,36 @@ public class SimpleStream extends HttpServlet {
                 relationship = firstNode.createRelationshipTo(secondNode, RelTypes.KNOWS);
                 relationship.setProperty("relation", "replied");
             }
-            // END SNIPPET: addData           
-
+            // END SNIPPET: addData  
+            try{
+                /*
+                OutputStream out=new ByteArrayOutputStream();
+                GraphvizWriter writer=new GraphvizWriter();
+                writer.emit(out, Walker.crosscut(null, types));
+                writer.emit(out,Walker.crosscut(firstNode.traverse(
+                        Order.DEPTH_FIRST,StopEvaluator.END_OF_GRAPH,
+                        ReturnableEvaluator.ALL,RelTypes.KNOWS,Direction.BOTH,
+                        RelTypes.WORKS_FOR,Direction.BOTH),RelTypes.KNOWS,RelTypes.WORKS_FOR));
+                tx.success();
+                System.out.println(out.toString());
+                */
+                drawGraph();
+            }
+            catch(Exception ex1)
+            {
+                System.out.println("ERROR: " + ex1.getMessage().toString());
+            }
             // START SNIPPET: transaction
             tx.success();
         }
         // END SNIPPET: transaction
+    }
+    
+    void drawGraph() throws IOException {
+        GraphvizWriter writer=new GraphvizWriter();
+        Walker walker=Walker.fullGraph(graphDb);
+        new File("/home/mary/Codes/GetTheLeadMaven/neo/graph").mkdirs();
+        writer.emit(new File("/home/mary/Codes/GetTheLeadMaven/neo/graph/" + SEARCH_NAME + ".dot"),walker);
     }
 
 private ResultSet executeQuery(Session session,String statement){
@@ -338,7 +373,7 @@ private static void registerShutdownHook(final GraphDatabaseService graphDb) {
     });
 }
     // END SNIPPET: shutdownHook
-    public void removeData() {
+    /*public void removeData() {
         try (Transaction tx = graphDb.beginTx()) {
             // START SNIPPET: removingData
             // let's remove the data
@@ -348,7 +383,7 @@ private static void registerShutdownHook(final GraphDatabaseService graphDb) {
             // END SNIPPET: removingData
             tx.success();
         }
-    }
+    }*/
 
     public void shutDown() {
         System.out.println();
