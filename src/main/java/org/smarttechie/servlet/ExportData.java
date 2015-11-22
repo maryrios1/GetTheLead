@@ -76,6 +76,8 @@ public class ExportData extends HttpServlet {
         while ((lineError = brError.readLine()) != null)
         {
             System.out.printf(lineError);
+            obj.put("success", false);
+            obj.put("message", "error!: " + lineError);
         }
         
         // for keep tracking the log, you can do following. 
@@ -87,9 +89,10 @@ public class ExportData extends HttpServlet {
         while ((line = br.readLine()) != null)
         {
             System.out.printf(line);
+            obj.put("success", true);
+            obj.put("message", "success");
         }
-        obj.put("success", true);
-        obj.put("message", "success");
+        
         }
         catch (Exception e){
            obj.put("success", false); 

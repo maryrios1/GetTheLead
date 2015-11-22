@@ -24,6 +24,14 @@
         <servlet-name>ExportData</servlet-name>
         <servlet-class>org.smarttechie.servlet.ExportData</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>GetJsonData</servlet-name>
+        <servlet-class>org.smarttechie.servlet.GetJsonData</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>ClassifyTweets</servlet-name>
+        <servlet-class>org.smarttechie.servlet.ClassifyTweets</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>test1</servlet-name>
         <url-pattern>/test1</url-pattern>
@@ -55,6 +63,14 @@
     <servlet-mapping>
         <servlet-name>ExportData</servlet-name>
         <url-pattern>/ExportData</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>GetJsonData</servlet-name>
+        <url-pattern>/GetJsonData</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>ClassifyTweets</servlet-name>
+        <url-pattern>/ClassifyTweets</url-pattern>
     </servlet-mapping>
     <session-config>
         <session-timeout>

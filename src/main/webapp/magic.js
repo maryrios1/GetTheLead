@@ -18,6 +18,11 @@ $(document).ready(function() {
       form_config.button = 'ShowGraph';  
     });
 
+
+    $("#ClassifyTweets").click(function(){
+      form_config.button = 'ClassifyTweets';  
+    });
+    
     // process the form
     $('form').on('submit',function(event) {
         //var value = $(this).attr('id');
@@ -29,96 +34,175 @@ $(document).ready(function() {
             'NameTable'             : $('input[name=NameTable]').val()
         };
 
-        if (value === 'StartSearch') { 
+        //if (value === 'StartSearch') { 
+        switch (value) {
             // process the form
-            $.ajax({
-                type        : 'POST', // define the type of HTTP verb we want to use (POST for our form)
-                url         : 'SimpleStream', // the url where we want to POST
-                data        : formData, // our data object
-                dataType    : 'json', // what type of data do we expect back from the server
-                encode      : true
-            })
-            // using the done promise callback
-            .done(function(data) {
-                // log data to the console so we can see
-                console.log(data); 
+            case 'StartSearch':
 
-                // here we will handle errors and validation messages
-                if ( ! data.success) 
-                {
-                    if (data.errors.keywords) {
-                           $('#raro').addClass('has-error'); // add the error class to show red input
-                           $('#raro').append('<div class="help-block">' + data.errors.name + '</div>'); // add the actual error message under our input
-                   }
-                }
-                else {
+                $.ajax({
+                    type: 'POST', // define the type of HTTP verb we want to use (POST for our form)
+                    url: 'SimpleStream', // the url where we want to POST
+                    data: formData, // our data object
+                    dataType: 'json', // what type of data do we expect back from the server
+                    encode: true
+                })
+                        // using the done promise callback
+                        .done(function (data) {
+                            // log data to the console so we can see
+                            console.log(data);
 
-                    // ALL GOOD! just show the success message!
-                    $('form').append('<div>' + data.message + '</div>');
+                            // here we will handle errors and validation messages
+                            if (!data.success)
+                            {
+                                if (data.errors.keywords) {
+                                    $('#raro').addClass('has-error'); // add the error class to show red input
+                                    $('#raro').append('<div class="help-block">' + data.errors.name + '</div>'); // add the actual error message under our input
+                                }
+                            }
+                            else {
 
-                    // usually after form submission, you'll want to redirect
-                    // window.location = '/thank-you'; // redirect a user to another page
-                    alert('success'); // for now we'll just alert the user
+                                // ALL GOOD! just show the success message!
+                                $('form').append('<div>' + data.message + '</div>');
 
-                }
-            })
-            // using the fail promise callback
-            .fail(function(data) {
+                                // usually after form submission, you'll want to redirect
+                                // window.location = '/thank-you'; // redirect a user to another page
+                                alert('success'); // for now we'll just alert the user
 
-                    // show any errors
-                    // best to remove for production
-                    console.log(data);
-            });
-        }
-        else
-        {
-           if (value === 'ExportData') 
-           {
-               // process the form
-            $.ajax({
-                type        : 'POST', // define the type of HTTP verb we want to use (POST for our form)
-                url         : 'ExportData', // the url where we want to POST
-                data        : formData, // our data object
-                dataType    : 'json', // what type of data do we expect back from the server
-                encode      : true
-            })
-            // using the done promise callback
-            .done(function(data) {
-                // log data to the console so we can see
-                console.log(data); 
+                            }
+                        })
+                        // using the fail promise callback
+                        .fail(function (data) {
 
-                // here we will handle errors and validation messages
-                if ( ! data.success) 
-                {
-                    if (data.errors.keywords) {
-                           $('#raro').addClass('has-error'); // add the error class to show red input
-                           $('#raro').append('<div class="help-block">' + data.errors.name + '</div>'); // add the actual error message under our input
-                   }
-                }
-                else {
+                            // show any errors
+                            // best to remove for production
+                            console.log(data);
+                        });
+                break;
+            case 'ExportData':
 
-                    // ALL GOOD! just show the success message!
-                    $('form').append('<div>' + data.message + '</div>');
+                // process the form
+                $.ajax({
+                    type: 'POST', // define the type of HTTP verb we want to use (POST for our form)
+                    url: 'ExportData', // the url where we want to POST
+                    data: formData, // our data object
+                    dataType: 'json', // what type of data do we expect back from the server
+                    encode: true
+                })
+                        // using the done promise callback
+                        .done(function (data) {
+                            // log data to the console so we can see
+                            console.log(data);
 
-                    // usually after form submission, you'll want to redirect
-                    // window.location = '/thank-you'; // redirect a user to another page
-                    alert('success'); // for now we'll just alert the user
+                            // here we will handle errors and validation messages
+                            if (!data.success)
+                            {
+                                if (data.errors.keywords) {
+                                    $('#raro').addClass('has-error'); // add the error class to show red input
+                                    $('#raro').append('<div class="help-block">' + data.errors.name + '</div>'); // add the actual error message under our input
+                                }
+                            }
+                            else {
 
-                }
-            })
-            // using the fail promise callback
-            .fail(function(data) {
+                                // ALL GOOD! just show the success message!
+                                $('form').append('<div>' + data.message + '</div>');
 
-                    // show any errors
-                    // best to remove for production
-                    console.log(data);
-            });
-           }                           
-           else
-           {
-               //ShowGraph
-               alert("Show Graph");
-           }
+                                // usually after form submission, you'll want to redirect
+                                // window.location = '/thank-you'; // redirect a user to another page
+                                alert('success'); // for now we'll just alert the user
+
+                            }
+                        })
+                        // using the fail promise callback
+                        .fail(function (data) {
+
+                            // show any errors
+                            // best to remove for production
+                            console.log(data);
+                        });
+                break;
+            case 'ShowGraph':
+                //ShowGraph
+                //alert("Show Graph");
+                $.ajax({
+                    type: 'POST', // define the type of HTTP verb we want to use (POST for our form)
+                    url: 'GetJsonData', // the url where we want to POST
+                    data: formData, // our data object
+                    dataType: 'json', // what type of data do we expect back from the server
+                    encode: true
+                })
+                        .done(function (data) {
+                            // log data to the console so we can see
+                            console.log(data);
+
+                            // here we will handle errors and validation messages
+                            if (!data.success)
+                            {
+                                if (data.errors.keywords) {
+                                    $('#raro').addClass('has-error'); // add the error class to show red input
+                                    $('#raro').append('<div class="help-block">' + data.errors.name + '</div>'); // add the actual error message under our input
+                                }
+                            }
+                            else {
+
+                                // ALL GOOD! just show the success message!
+                                $('form').append('<div>' + data.message + '</div>');
+
+                                // usually after form submission, you'll want to redirect
+                                // window.location = '/thank-you'; // redirect a user to another page
+                                alert('graph ' + data.graph); // for now we'll just alert the user
+
+                            }
+                        })
+                        // using the fail promise callback
+                        .fail(function (data) {
+
+                            // show any errors
+                            // best to remove for production
+                            console.log(data);
+                        });
+
+                break;
+            case 'ClassifyTweets':
+                $.ajax({
+                    type: 'POST', // define the type of HTTP verb we want to use (POST for our form)
+                    url: 'ClassifyTweets', // the url where we want to POST
+                    data: formData, // our data object
+                    dataType: 'json', // what type of data do we expect back from the server
+                    encode: true
+                })
+                        .done(function (data) {
+                            // log data to the console so we can see
+                            console.log(data);
+
+                            // here we will handle errors and validation messages
+                            if (!data.success)
+                            {
+                                if (data.errors.keywords) {
+                                    $('#raro').addClass('has-error'); // add the error class to show red input
+                                    $('#raro').append('<div class="help-block">' + data.errors.name + '</div>'); // add the actual error message under our input
+                                }
+                            }
+                            else {
+
+                                // ALL GOOD! just show the success message!
+                                $('form').append('<div>' + data.message + '</div>');
+
+                                // usually after form submission, you'll want to redirect
+                                // window.location = '/thank-you'; // redirect a user to another page
+                                alert('clasificado ' ); // for now we'll just alert the user
+
+                            }
+                        })
+                        // using the fail promise callback
+                        .fail(function (data) {
+
+                            // show any errors
+                            // best to remove for production
+                            console.log(data);
+                        });
+                break;
+            default:
+                break;
         }
         // stop the form from submitting the normal way and refreshing the page
         event.preventDefault();
@@ -140,3 +224,9 @@ $(document).ajaxComplete(function(event, request, settings) {
   $('#loading-indicator').hide();
 });
 
+//the helper function provided by neo4j documents
+function idIndex(a,id) {
+    for (var i=0;i<a.length;i++) {
+        if (a[i].id == id) return i;}
+    return null;
+}

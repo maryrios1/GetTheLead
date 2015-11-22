@@ -14,30 +14,25 @@ import com.datastax.driver.core.exceptions.QueryExecutionException;
 import com.datastax.driver.core.exceptions.QueryTimeoutException;
 import com.datastax.driver.core.exceptions.QueryValidationException;
 import com.datastax.driver.core.exceptions.SyntaxError;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.util.Map;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.DynamicLabel;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.ReturnableEvaluator;
-import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.Traverser.Order;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.graphdb.index.UniqueFactory;
 import org.neo4j.visualization.graphviz.GraphvizWriter;
 import org.neo4j.walk.Walker;
-//import org.neo4j.io.fs.FileUtils;
-//import src.classes.EmbeddedNeo4j;
 import twitter4j.FilterQuery;
 import twitter4j.HashtagEntity;
 import twitter4j.StallWarning;
@@ -276,12 +271,19 @@ public class SimpleStream extends HttpServlet {
             // END SNIPPET: transaction
             // START SNIPPET: addData
             
-            firstNode = graphDb.createNode();
-            firstNode.setProperty("name", obj.get("User"));
-            firstNode.setProperty("id", obj.get("UserId"));
+            firstNode = getOrCreateUserWithUniqueFactory(obj.get("UserId").toString(),graphDb);
+            
+            org.neo4j.graphdb.Label lblFirstNode = DynamicLabel.label(
+                    obj.get("User").toString());
+            firstNode.addLabel(lblFirstNode);
+            firstNode.setProperty("name", obj.get("User").toString());
+            firstNode.setProperty("id", obj.get("UserId").toString());
             if(obj.get("InReplyToScreenName")!= null)
             {
-                secondNode = graphDb.createNode();
+                secondNode = getOrCreateUserWithUniqueFactory(obj.get("InReplyToUserId").toString(),graphDb);
+                org.neo4j.graphdb.Label lblSecondNode = DynamicLabel.label(
+                        obj.get("InReplyToScreenName").toString());
+                secondNode.addLabel(lblSecondNode);
                 secondNode.setProperty("name", obj.get("InReplyToScreenName"));
                 secondNode.setProperty("id", obj.get("InReplyToUserId"));
                 relationship = firstNode.createRelationshipTo(secondNode, RelTypes.KNOWS);
@@ -317,6 +319,21 @@ public class SimpleStream extends HttpServlet {
         Walker walker=Walker.fullGraph(graphDb);
         new File("/home/mary/Codes/GetTheLeadMaven/neo/graph").mkdirs();
         writer.emit(new File("/home/mary/Codes/GetTheLeadMaven/neo/graph/" + SEARCH_NAME + ".dot"),walker);
+    }
+    
+    
+    public Node getOrCreateUserWithUniqueFactory( String id, GraphDatabaseService graphDb )
+    {
+        UniqueFactory<Node> factory = new UniqueFactory.UniqueNodeFactory( graphDb, "UserNodes" )
+        {
+
+            @Override
+            protected void initialize(Node created, Map<String, Object> properties) {
+                created.setProperty( "id", properties.get( "id" ) );                
+            }
+        };
+
+        return factory.getOrCreate( "id", id );
     }
 
 private ResultSet executeQuery(Session session,String statement){

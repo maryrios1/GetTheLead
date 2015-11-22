@@ -98,7 +98,8 @@ public class ClassifyTweets extends HttpServlet {
             int trainingIterations = 30;
             model = DocumentCategorizerME.train("en", sampleStream, cutoff,
                     trainingIterations);
-        } catch (IOException e) {
+        } 
+        catch (IOException e) {
             e.printStackTrace();
         } finally {
             if (dataIn != null) {
