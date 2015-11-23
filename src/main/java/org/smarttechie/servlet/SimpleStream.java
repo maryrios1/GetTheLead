@@ -233,7 +233,7 @@ public class SimpleStream extends HttpServlet {
                 insertNodeNeo4j(obj);
                 
                 //out.println(obj.toJSONString());
-                String statement = "INSERT INTO TweetsTest JSON '" + obj.toJSONString() + "';";
+                String statement = "INSERT INTO TweetsTest2 JSON '" + obj.toJSONString() + "';";
                 executeQuery(session,statement);
             }
 

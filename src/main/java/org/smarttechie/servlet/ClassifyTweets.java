@@ -10,6 +10,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -19,6 +20,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import opennlp.tools.doccat.DoccatModel;
 import opennlp.tools.doccat.DocumentCategorizerME;
+import opennlp.tools.doccat.DocumentSample;
 import opennlp.tools.doccat.DocumentSampleStream;
 import opennlp.tools.tokenize.Tokenizer;
 import opennlp.tools.tokenize.TokenizerME;
@@ -52,7 +54,7 @@ public class ClassifyTweets extends HttpServlet {
         session = cluster.connect("GetTheLead");
         String message ="";
         trainModel();
-        ResultSet results = session.execute("SELECT * FROM tweets LIMIT 10");
+        ResultSet results = session.execute("SELECT * FROM TweetsTest2 LIMIT 100");
         for (Row row : results) {
             System.out.println(
                     row.getString("user")+", "+row.getString("message"));
@@ -87,6 +89,7 @@ public class ClassifyTweets extends HttpServlet {
     }
     
     public void trainModel() {
+        /*
         InputStream dataIn = null;
         try {
             dataIn = new FileInputStream(
@@ -95,33 +98,79 @@ public class ClassifyTweets extends HttpServlet {
             ObjectStream sampleStream = new DocumentSampleStream(lineStream);
             // Specifies the minimum number of times a feature must be seen
             int cutoff = 2;
-            int trainingIterations = 30;
+            int trainingIterations = 300;
             model = DocumentCategorizerME.train("en", sampleStream, cutoff,
                     trainingIterations);
         } 
         catch (IOException e) {
             e.printStackTrace();
+            System.out.println("ERROR: " + e.getMessage().toString());
         } finally {
             if (dataIn != null) {
                 try {
                     dataIn.close();
                 } catch (IOException e) {
                     e.printStackTrace();
+                    System.out.println("ERROR: " + e.getMessage().toString());
                 }
             }
+        }*/
+        // model name you define your own name for the model
+        String onlpModelPath = "en-doccat.bin";
+        // training data set
+        String trainingDataFilePath = "/home/mary/Codes/GetTheLeadMaven/src/main/dataTraining/tweets.txt";
+
+        InputStream dataInputStream = null;
+        try {
+            // Read training data file
+            dataInputStream = new FileInputStream(trainingDataFilePath);
+            // Read each training instance
+            ObjectStream<String> lineStream = new PlainTextByLineStream(dataInputStream, "UTF-8");
+            // making sample Stream to train
+            ObjectStream<DocumentSample> sampleStream = new DocumentSampleStream(lineStream);
+            // Calculate the training model "en" means english, sampleStream is the training data, 2 cutoff, 300 iterations
+            model = DocumentCategorizerME.train("en", sampleStream, 2, 30);
+        } catch (Exception e) {
+            System.out.println("ERROR: " + e.getMessage() );
+        } finally {
+            if (dataInputStream != null) {
+                try {
+                    dataInputStream.close();
+                } catch (Exception e) {
+                     System.out.println("ERROR: " + e.getMessage().toString() );
+                }
+            }
+        }
+ 
+ 
+        // Now we are writing the calculated model to a file in order to use the
+        // trained classifier in production
+ 
+        try {
+            if (model != null) {
+                //saving the file
+                model.serialize(new FileOutputStream(onlpModelPath));
+            }
+        } catch (Exception e) {
+             System.out.println("ERROR: " + e.getMessage().toString() );
         }
     }
     
     public void classifyNewTweet(String tweet) {
-        DocumentCategorizerME myCategorizer = new DocumentCategorizerME(model);
-        double[] outcomes = myCategorizer.categorize(tweet);
-        String category = myCategorizer.getBestCategory(outcomes);
+        try {
+            DocumentCategorizerME myCategorizer = new DocumentCategorizerME(model);
+            double[] outcomes = myCategorizer.categorize(tweet);
+            String category = myCategorizer.getBestCategory(outcomes);
 
-        if (category.equalsIgnoreCase("1")) {
-            System.out.println("The tweet is positive :) ");
-        } else {
-            System.out.println("The tweet is negative :( ");
+            if (category.equalsIgnoreCase("1")) {
+                System.out.println("The tweet is positive :) ");
+            } else {
+                System.out.println("The tweet is negative :( ");
+            }
+        } catch (Exception e) {
+            System.out.println("ERROR: " + e.getMessage());
         }
+    
     }
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
