@@ -1,0 +1,26 @@
+positive	Watching a nice movie
+negative	The painting is ugly, will return it tomorrow...
+1	One of the best soccer games, worth seeing it
+1	Very tasty, not only for vegetarians
+positive	Super party!
+negative	Too early to travel..need a coffee
+0	Damn..the train is late again...
+0	Bad news, my flight just got cancelled.
+1	Happy birthday mr. president
+1	Just watch it. Respect.
+1	Wonderful sunset.
+1	Bravo, first title in 2014!
+0	Had a bad evening, need urgently a beer.
+0	I put on weight again
+1	On today's show we met Angela, a woman with an amazing story
+1	I fell in love again
+0	I lost my keys
+1	On a trip to Iceland
+1	Happy in Berlin
+0	I hate Mondays
+1	Love the new book I reveived for Christmas
+0	He killed our good mood
+1	I am in good spirits again
+1	This guy creates the most awesome pics ever 
+0	The dark side of a selfie.
+1	Cool! John is back!

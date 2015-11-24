@@ -14,6 +14,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.util.Date;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -54,9 +55,23 @@ public class ClassifyTweets extends HttpServlet {
         session = cluster.connect("GetTheLead");
         String message ="";
         trainModel();
-        ResultSet results = session.execute("SELECT * FROM TweetsTest2 LIMIT 100");
+        // Get current time
+        long start = System.currentTimeMillis();
+        
+        int i=1;
+        ResultSet results = session.execute("SELECT * FROM TweetsTest");
+        /*
+        for (int j = 0; j < results.all().size(); j++) {
+            Row row = results.all().get(j);
+            System.out.println((i++) +" " +  
+                    row.getString("user")+", "+row.getString("message"));
+            
+            message = row.getString("message");
+            classifyNewTweet(message);
+        }*/
+        
         for (Row row : results) {
-            System.out.println(
+            System.out.println((i++) +" " +  
                     row.getString("user")+", "+row.getString("message"));
             
             message = row.getString("message");
@@ -83,9 +98,14 @@ public class ClassifyTweets extends HttpServlet {
             */
         
         }
-        
-        
-    
+
+        // Get elapsed time in milliseconds
+        long elapsedTimeMillis = System.currentTimeMillis()-start;
+
+        // Get elapsed time in seconds
+        float elapsedTimeSec = elapsedTimeMillis/1000F;
+        System.out.println("Tiempo: " + elapsedTimeSec + "s");
+
     }
     
     public void trainModel() {
@@ -96,27 +116,25 @@ public class ClassifyTweets extends HttpServlet {
                     "/home/mary/Codes/GetTheLeadMaven/src/main/dataTraining/tweets.txt");
             ObjectStream lineStream = new PlainTextByLineStream(dataIn, "UTF-8");
             ObjectStream sampleStream = new DocumentSampleStream(lineStream);
-            // Specifies the minimum number of times a feature must be seen
-            int cutoff = 2;
-            int trainingIterations = 300;
-            model = DocumentCategorizerME.train("en", sampleStream, cutoff,
-                    trainingIterations);
+            model = DocumentCategorizerME.train("en", sampleStream);//, cutoff,
+        //            trainingIterations);
         } 
-        catch (IOException e) {
+        catch (Exception e) {
             e.printStackTrace();
-            System.out.println("ERROR: " + e.getMessage().toString());
+            System.out.println("ERROR: " + e.getMessage());
         } finally {
             if (dataIn != null) {
                 try {
                     dataIn.close();
-                } catch (IOException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
-                    System.out.println("ERROR: " + e.getMessage().toString());
+                    System.out.println("ERROR: " + e.getMessage());
                 }
             }
         }*/
+        
         // model name you define your own name for the model
-        String onlpModelPath = "en-doccat.bin";
+        String onlpModelPath = "/home/mary/Codes/GetTheLeadMaven/src/main/models/en-doccat.bin";
         // training data set
         String trainingDataFilePath = "/home/mary/Codes/GetTheLeadMaven/src/main/dataTraining/tweets.txt";
 
@@ -129,7 +147,7 @@ public class ClassifyTweets extends HttpServlet {
             // making sample Stream to train
             ObjectStream<DocumentSample> sampleStream = new DocumentSampleStream(lineStream);
             // Calculate the training model "en" means english, sampleStream is the training data, 2 cutoff, 300 iterations
-            model = DocumentCategorizerME.train("en", sampleStream, 2, 30);
+            model = DocumentCategorizerME.train("en", sampleStream);//, 2, 30);
         } catch (Exception e) {
             System.out.println("ERROR: " + e.getMessage() );
         } finally {
@@ -154,6 +172,7 @@ public class ClassifyTweets extends HttpServlet {
         } catch (Exception e) {
              System.out.println("ERROR: " + e.getMessage().toString() );
         }
+        
     }
     
     public void classifyNewTweet(String tweet) {
