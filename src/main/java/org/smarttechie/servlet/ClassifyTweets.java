@@ -13,8 +13,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
-import java.util.Date;
+import java.util.List;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -23,11 +22,9 @@ import opennlp.tools.doccat.DoccatModel;
 import opennlp.tools.doccat.DocumentCategorizerME;
 import opennlp.tools.doccat.DocumentSample;
 import opennlp.tools.doccat.DocumentSampleStream;
-import opennlp.tools.tokenize.Tokenizer;
-import opennlp.tools.tokenize.TokenizerME;
-import opennlp.tools.tokenize.TokenizerModel;
 import opennlp.tools.util.ObjectStream;
 import opennlp.tools.util.PlainTextByLineStream;
+import org.json.simple.JSONObject;
 
 /**
  *
@@ -46,37 +43,84 @@ public class ClassifyTweets extends HttpServlet {
      */
     
     DoccatModel model;
+    String TABLE;
     
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        try {
         Cluster cluster;
         Session session;
+        TABLE = request.getParameter("Table");
+        TABLE = "Tweetsclassification";
         cluster = Cluster.builder().addContactPoint("localhost").build();
         session = cluster.connect("GetTheLead");
-        String message ="";
+        
         trainModel();
-        // Get current time
+       
+       
+        int cores = Runtime.getRuntime().availableProcessors();
+        
+        String query = "SELECT COUNT(*) FROM " + TABLE;
+        ResultSet results = session.execute(query);
+        Row rowCount = results.one();
+        Long numberRows = rowCount.getLong("count");
+        int numberRowsInt = (int) (long) numberRows;
+        int numberRowsByCore = numberRowsInt/cores + 1;
+                        
+        results = session.execute("SELECT * FROM GetTheLead." + TABLE );
+         // Get current time
         long start = System.currentTimeMillis();
+        List <Row> lRows = results.all();
         
+        int startLimit = 0;
+        int endLimit = 0;
+        for (int j = 1; j < cores+1; j++) {
+            endLimit = numberRowsByCore*j;
+            if (endLimit>lRows.size())
+                endLimit = lRows.size();
+            
+            List <Row> lRowsTemp = lRows.subList(startLimit, endLimit);
+           
+            evaluateSetTweets(lRowsTemp,numberRowsByCore,session);
+            startLimit +=numberRowsByCore;
+        }               
+        // Get elapsed time in milliseconds
+        long elapsedTimeMillis = System.currentTimeMillis()-start;
+
+        // Get elapsed time in seconds
+        float elapsedTimeSec = elapsedTimeMillis/1000F;
+        System.out.println("Tiempo en partes: " + elapsedTimeSec + " s");
+        
+        
+        start = System.currentTimeMillis();
+        String message ="";
+        Long IdTweet;
         int i=1;
-        ResultSet results = session.execute("SELECT * FROM TweetsTest");
-        /*
-        for (int j = 0; j < results.all().size(); j++) {
-            Row row = results.all().get(j);
-            System.out.println((i++) +" " +  
-                    row.getString("user")+", "+row.getString("message"));
-            
-            message = row.getString("message");
-            classifyNewTweet(message);
-        }*/
-        
         for (Row row : results) {
-            System.out.println((i++) +" " +  
-                    row.getString("user")+", "+row.getString("message"));
+            /*System.out.println((i++) +" " +  
+                    row.getString("user")+", "+row.getString("message"));*/
             
+            IdTweet =  row.getLong("Id");
             message = row.getString("message");
-            classifyNewTweet(message);
-            /*
+            classifyNewTweet(message,session,IdTweet);
+                    
+        }
+
+        // Get elapsed time in milliseconds
+        elapsedTimeMillis = System.currentTimeMillis()-start;
+
+        // Get elapsed time in seconds
+        elapsedTimeSec = elapsedTimeMillis/1000F;
+        System.out.println("Tiempo normal: " + elapsedTimeSec + " s");
+        }
+        catch (Exception e)
+        {
+            System.out.println("ERROR: " +  e.getMessage());
+        }
+
+    }
+    
+    /*
             try{
             InputStream is = new FileInputStream(
                     "/home/mary/Codes/GetTheLeadMaven/src/main/models/en-token.bin");
@@ -96,17 +140,6 @@ public class ClassifyTweets extends HttpServlet {
                 System.out.println("ERROR: " + ex1.getMessage().toString());
             }
             */
-        
-        }
-
-        // Get elapsed time in milliseconds
-        long elapsedTimeMillis = System.currentTimeMillis()-start;
-
-        // Get elapsed time in seconds
-        float elapsedTimeSec = elapsedTimeMillis/1000F;
-        System.out.println("Tiempo: " + elapsedTimeSec + "s");
-
-    }
     
     public void trainModel() {
         /*
@@ -175,17 +208,26 @@ public class ClassifyTweets extends HttpServlet {
         
     }
     
-    public void classifyNewTweet(String tweet) {
+    public void classifyNewTweet(String tweet,Session session,Long Id) {
+        //IdTweet,UserId,CurrentUserRetweetId,InReplyToUserId
         try {
             DocumentCategorizerME myCategorizer = new DocumentCategorizerME(model);
             double[] outcomes = myCategorizer.categorize(tweet);
             String category = myCategorizer.getBestCategory(outcomes);
-
+            String classification ="";
             if (category.equalsIgnoreCase("1")) {
-                System.out.println("The tweet is positive :) ");
+                //System.out.println("The tweet is positive :) ");
+                classification= "positive";
             } else {
-                System.out.println("The tweet is negative :( ");
+                //System.out.println("The tweet is negative :( ");
+                classification = "negative";
             }
+            String query = "UPDATE GetTheLead." + TABLE + " " +
+                    "SET classification = '" + classification + "' " + 
+                    "WHERE Id = " + Id ;
+            
+            session.execute(query);
+            
         } catch (Exception e) {
             System.out.println("ERROR: " + e.getMessage());
         }
@@ -230,5 +272,31 @@ public class ClassifyTweets extends HttpServlet {
     public String getServletInfo() {
         return "Short description";
     }// </editor-fold>
+
+    private int evaluateSetTweets(List<Row> lRows, int numberRowsByCore,Session session) {
+        
+        int i = 1;
+        String message = "";
+        Long IdTweet;
+        /*
+        for (Row row : results) {
+        System.out.println((i++) +" " +
+        row.getString("user")+", "+row.getString("message"));
+        IdTweet =  row.getDouble("Id");
+        message = row.getString("message");
+        classifyNewTweet(message,session,IdTweet);
+        }
+         */
+        for (Row row : lRows) {
+            //System.out.println((i++) +" " +
+            //      row.getString("user")+", "+row.getString("message"));
+                     
+            IdTweet =  row.getLong("Id");
+            message = row.getString("message");
+            classifyNewTweet(message,session,IdTweet);
+        }
+        
+        return i;
+    }
 
 }

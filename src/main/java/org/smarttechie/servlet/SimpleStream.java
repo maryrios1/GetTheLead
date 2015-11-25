@@ -86,7 +86,7 @@ public class SimpleStream extends HttpServlet {
         Session session;
         cluster = Cluster.builder().addContactPoint("localhost").build();
         session = cluster.connect("GetTheLead");
-        String[] parametros = {"TuiteraMx",keywords};
+        String[] parametros = {keywords};
         twitterStream = new TwitterStreamFactory(cb.build()).getInstance();
         //EmbeddedNeo4j neo = new EmbeddedNeo4j();
         //neo.createDb();
@@ -134,9 +134,7 @@ public class SimpleStream extends HttpServlet {
 
             @Override
             public void onStatus(Status status) {
-                Twitter twitter = new TwitterFactory().getInstance();
-                
-                
+                Twitter twitter = new TwitterFactory().getInstance();                
                 User user = status.getUser();
                 
                 // gets Username
@@ -233,7 +231,7 @@ public class SimpleStream extends HttpServlet {
                 insertNodeNeo4j(obj);
                 
                 //out.println(obj.toJSONString());
-                String statement = "INSERT INTO TweetsTest2 JSON '" + obj.toJSONString() + "';";
+                String statement = "INSERT INTO TweetsClassification JSON '" + obj.toJSONString() + "';";
                 executeQuery(session,statement);
             }
 
