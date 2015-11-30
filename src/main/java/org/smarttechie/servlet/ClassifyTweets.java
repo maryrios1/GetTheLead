@@ -14,6 +14,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -49,56 +52,79 @@ public class ClassifyTweets extends HttpServlet {
             throws ServletException, IOException {
         try {
         Cluster cluster;
-        Session session;
+        final Session session;
         TABLE = request.getParameter("Table");
         TABLE = "Tweetsclassification";
         cluster = Cluster.builder().addContactPoint("localhost").build();
         session = cluster.connect("GetTheLead");
         
-        trainModel();
+        //Tarea serial (no se puede paralelizar)
+        trainModel();       
        
-       
-        int cores = Runtime.getRuntime().availableProcessors();
-        
+        final int cores = Runtime.getRuntime().availableProcessors();
+
+        ExecutorService exec = Executors.newFixedThreadPool(cores);
+    
         String query = "SELECT COUNT(*) FROM " + TABLE;
         ResultSet results = session.execute(query);
         Row rowCount = results.one();
         Long numberRows = rowCount.getLong("count");
         int numberRowsInt = (int) (long) numberRows;
-        int numberRowsByCore = numberRowsInt/cores + 1;
+        final int numberRowsByCore = numberRowsInt/cores + 1;
                         
         results = session.execute("SELECT * FROM GetTheLead." + TABLE );
-         // Get current time
-        long start = System.currentTimeMillis();
-        List <Row> lRows = results.all();
-        
-        int startLimit = 0;
-        int endLimit = 0;
-        for (int j = 1; j < cores+1; j++) {
-            endLimit = numberRowsByCore*j;
-            if (endLimit>lRows.size())
-                endLimit = lRows.size();
-            
-            List <Row> lRowsTemp = lRows.subList(startLimit, endLimit);
-           
-            evaluateSetTweets(lRowsTemp,numberRowsByCore,session);
-            startLimit +=numberRowsByCore;
-        }               
+        //Proceso en paralelo
+        // Get current time        
+        final long start = System.currentTimeMillis();
+        final List <Row> lRows = results.all();        
+          
+        for (int i=1; i<cores+1; i++) {
+            exec.execute(new Runnable() {
+              public void run() {
+                long threadId =  Thread.currentThread().getId()%cores +1;
+                System.out.println("I am thread " + threadId + " of " + cores);
+                int startLimit = numberRowsByCore*(int)threadId - numberRowsByCore;
+                int endLimit = 0;
+                endLimit = numberRowsByCore* (int)threadId;
+                if (endLimit>lRows.size())
+                    endLimit = lRows.size();
+
+                //List <Row> lRowsTemp = lRows.subList(startLimit, endLimit);
+                List <Row> lRowsTemp =  splitDataSet(lRows,startLimit,endLimit);
+                        
+                evaluateSetTweets(lRowsTemp,session);
+                System.out.println("I am thread " + threadId + " I have finished");
+                long elapsedTimeMillis = System.currentTimeMillis()-start;
+
+                // Get elapsed time in seconds
+                float elapsedTimeSec = elapsedTimeMillis/1000F;
+                System.out.println("Tiempo en partes: " + elapsedTimeSec + " s hilo:" + threadId);
+              }
+            });
+        }
+
+        //detiene la posibilidad de crear mas tareas
+        exec.shutdown();
+        System.out.println("Tiempo de espera");
+        //espera a que terminen todas las tareas
+        exec.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+        System.out.println("TERMINO");
+        //}               
         // Get elapsed time in milliseconds
-        long elapsedTimeMillis = System.currentTimeMillis()-start;
+        //long elapsedTimeMillis = System.currentTimeMillis()-start;
 
         // Get elapsed time in seconds
-        float elapsedTimeSec = elapsedTimeMillis/1000F;
-        System.out.println("Tiempo en partes: " + elapsedTimeSec + " s");
+        //float elapsedTimeSec = elapsedTimeMillis/1000F;
+        //System.out.println("Tiempo en partes: " + elapsedTimeSec + " s");
         
-        
-        start = System.currentTimeMillis();
+        /*
+        //Proceso en modo serial
+        final long start = System.currentTimeMillis();
         String message ="";
         Long IdTweet;
         int i=1;
         for (Row row : results) {
-            /*System.out.println((i++) +" " +  
-                    row.getString("user")+", "+row.getString("message"));*/
+            //System.out.println((i++) +" " + row.getString("user")+", "+row.getString("message"));
             
             IdTweet =  row.getLong("Id");
             message = row.getString("message");
@@ -107,11 +133,12 @@ public class ClassifyTweets extends HttpServlet {
         }
 
         // Get elapsed time in milliseconds
-        elapsedTimeMillis = System.currentTimeMillis()-start;
+        long elapsedTimeMillis = System.currentTimeMillis()-start;
 
         // Get elapsed time in seconds
-        elapsedTimeSec = elapsedTimeMillis/1000F;
+        float elapsedTimeSec = elapsedTimeMillis/1000F;
         System.out.println("Tiempo normal: " + elapsedTimeSec + " s");
+        */
         }
         catch (Exception e)
         {
@@ -273,7 +300,7 @@ public class ClassifyTweets extends HttpServlet {
         return "Short description";
     }// </editor-fold>
 
-    private int evaluateSetTweets(List<Row> lRows, int numberRowsByCore,Session session) {
+    private int evaluateSetTweets(List<Row> lRows,Session session) {
         
         int i = 1;
         String message = "";
@@ -297,6 +324,12 @@ public class ClassifyTweets extends HttpServlet {
         }
         
         return i;
+    }
+    
+    public synchronized List<Row> splitDataSet(List <Row> result,int start, int end) {
+        System.out.println("Limit start " + start + " end " + end);
+        List <Row> listTemp = result.subList(start, end);
+        return listTemp;
     }
 
 }
